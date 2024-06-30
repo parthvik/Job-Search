@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+databases
+sqlalchemy
+mysql-connector-python
+aiomysql
+fuzzywuzzy
+requests
+mysqlclient
