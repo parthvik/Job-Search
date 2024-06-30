@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 
 export function Ui() {
   const [experience, setExperience] = useState("0");
-  const [budget, setBudget] = useState("10000");
+  const [budget, setBudget] = useState("0");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [searchString, setSearchString] = useState("");
   const [commitment, setCommitment] = useState({
@@ -194,9 +194,6 @@ export function Ui() {
               </Avatar>
               <div className="flex-1">
                 <CardTitle className="text-gray-800">Kavish Sanghvi | Exp: 3 years | United States</CardTitle>
-                <CardDescription className="text-gray-600">
-                  Enhanced trading platforms and led critical projects at JP Morgan and Amazon.
-                </CardDescription>
               </div>
               <Button variant="default" className="ml-auto text-purple-600 hover:bg-purple-300">
                 View profile <ArrowRightIcon className="ml-2 w-4 h-4 text-purple-600" />
@@ -239,9 +236,7 @@ export function Ui() {
               </Avatar>
               <div className="flex-1">
                 <CardTitle className="text-gray-800">Swapnil Shivhare | Exp: 17 years</CardTitle>
-                <CardDescription className="text-gray-600">
-                  Led backend development for Walmart&apos;s Spark App using Java, Spring Boot, Kafka.
-                </CardDescription>
+                
               </div>
               <Button variant="default" className="ml-auto text-purple-600 hover:bg-purple-300">
                 View profile <ArrowRightIcon className="ml-2 w-4 h-4 text-purple-600" />
@@ -287,9 +282,6 @@ export function Ui() {
               </Avatar>
               <div className="flex-1">
                 <CardTitle className="text-gray-800">Rajib Dutta | Exp: 14 years | India</CardTitle>
-                <CardDescription className="text-gray-600">
-                  Developed TCP acceleration solutions as Principal at Enea Openwave and Oracle.
-                </CardDescription>
               </div>
               <Button variant="default" className="ml-auto text-purple-600 hover:bg-purple-300">
                 View profile <ArrowRightIcon className="ml-2 w-4 h-4 text-purple-600" />
@@ -332,9 +324,6 @@ export function Ui() {
               </Avatar>
               <div className="flex-1">
                 <CardTitle className="text-gray-800">Aashish Kumar | Exp: 6 years | United States</CardTitle>
-                <CardDescription className="text-gray-600">
-                  Led Google Assistant backend migration, impacting 150M users with zero downtime.
-                </CardDescription>
               </div>
               <Button variant="default" className="ml-auto text-purple-600 hover:bg-purple-300">
                 View profile <ArrowRightIcon className="ml-2 w-4 h-4 text-purple-600" />
