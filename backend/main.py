@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import databases
 import sqlalchemy
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, and_
 from fuzzywuzzy import process
 import urllib.parse
 import os
@@ -14,7 +14,7 @@ import time
 load_dotenv()
 
 class JobQuery(BaseModel):
-    budget: str
+    budget: str  # Assuming this is still a string that needs to be converted to an integer for comparison
     experience: str
     startDate: str
     workType: str
@@ -53,7 +53,7 @@ jobs = sqlalchemy.Table(
     sqlalchemy.Column("notes", Text),
     sqlalchemy.Column("referralCode", sqlalchemy.String, unique=True),
     sqlalchemy.Column("isGptEnabled", sqlalchemy.Boolean),
-    sqlalchemy.Column("preferredRole", sqlalchemy.String),  # Make sure this column is included
+    sqlalchemy.Column("preferredRole", sqlalchemy.String),
     sqlalchemy.Column("fullTimeStatus", sqlalchemy.String),
     sqlalchemy.Column("workAvailability", sqlalchemy.String),
     sqlalchemy.Column("fullTimeSalaryCurrency", sqlalchemy.String),
@@ -83,6 +83,37 @@ MercorUserSkills = sqlalchemy.Table(
     sqlalchemy.Column("order", Integer, default=0)
 )
 
+UserResume = sqlalchemy.Table(
+    "UserResume",
+    metadata,
+    sqlalchemy.Column("resumeId", sqlalchemy.String, primary_key=True),
+    sqlalchemy.Column("userId", sqlalchemy.String, sqlalchemy.ForeignKey("MercorUsers.userId")),
+    sqlalchemy.Column("url", Text),
+    sqlalchemy.Column("filename", String),
+    sqlalchemy.Column("createdAt", DateTime),
+    sqlalchemy.Column("updatedAt", DateTime),
+    sqlalchemy.Column("source", String),
+    sqlalchemy.Column("ocrText", Text),
+    sqlalchemy.Column("ocrEmail", String),
+    sqlalchemy.Column("ocrGithubUsername", String),
+    sqlalchemy.Column("resumeBasedQuestions", Text),
+    sqlalchemy.Column("isInvitedToInterview", Boolean),
+    sqlalchemy.Column("reminderTasksIds", JSON)
+)
+
+WorkExperience = sqlalchemy.Table(
+    "WorkExperience",
+    metadata,
+    sqlalchemy.Column("workExperienceId", sqlalchemy.String, primary_key=True),
+    sqlalchemy.Column("company", String),
+    sqlalchemy.Column("role", String),
+    sqlalchemy.Column("startDate", String),
+    sqlalchemy.Column("endDate", String),
+    sqlalchemy.Column("description", Text),
+    sqlalchemy.Column("locationCity", String),
+    sqlalchemy.Column("locationCountry", String),
+    sqlalchemy.Column("resumeId", String, sqlalchemy.ForeignKey("UserResume.resumeId"))
+)
 
 app = FastAPI()
 
@@ -94,22 +125,21 @@ async def startup():
 async def shutdown():
     await database.disconnect()
 
+from datetime import datetime
+
 @app.post("/query-jobs/")
 async def query_jobs(query: JobQuery):
     start_time = time.time()  # Start timing
     
-    # Fetch skills and process query
+    # Fetch and match skills
     all_skills = await database.fetch_all(select(skills.c.skillId, skills.c.skillName))
     skills_dict = {skill['skillName']: skill['skillId'] for skill in all_skills}
-    
-    # Match skills using fuzzy logic
     matching_skills = process.extract(query.semanticSearchString, skills_dict.keys(), limit=10)
     matching_skill_ids = [skills_dict[skill[0]] for skill in matching_skills if skill[1] > 70]
 
     if not matching_skill_ids:
         return {"message": "No skills matched your query.", "query": query.semanticSearchString}
 
-    # Get user IDs from matched skills
     user_skill_query = select(MercorUserSkills.c.userId).where(MercorUserSkills.c.skillId.in_(matching_skill_ids)).distinct()
     user_ids = await database.fetch_all(user_skill_query)
     user_ids = [user['userId'] for user in user_ids]
@@ -117,8 +147,7 @@ async def query_jobs(query: JobQuery):
     if not user_ids:
         return {"message": "No users found with the matching skills."}
 
-    # Retrieve user details for the top matching users
-    user_query = select(jobs).where(jobs.c.userId.in_(user_ids)).limit(4)  # Limiting results
+    user_query = select(jobs).where(jobs.c.userId.in_(user_ids), jobs.c.fullTimeSalary <= int(query.budget))
     users_with_skills = await database.fetch_all(user_query)
 
     result = []
@@ -127,23 +156,40 @@ async def query_jobs(query: JobQuery):
         user_skills = await database.fetch_all(user_skills_query)
         user_skills_list = [skill['skillName'] for skill in user_skills]
 
+        # Fetch resume ID for user
+        resume_query = select(UserResume.c.resumeId).where(UserResume.c.userId == user['userId'])
+        resume_id = await database.fetch_one(resume_query)
+
+        # Fetch and process work experience
+        experience_query = select(WorkExperience).where(WorkExperience.c.resumeId == resume_id['resumeId'])
+        experiences = await database.fetch_all(experience_query)
+        companies = set()
+        total_experience = 0
+
+        for exp in experiences:
+            companies.add(exp['company'])
+            # Calculate duration
+            start_date = datetime.strptime(exp['startDate'], '%Y') if exp['startDate'] else None
+            end_date = datetime.strptime(exp['endDate'], '%Y') if exp['endDate'] else datetime.now()
+            if start_date:
+                duration_years = (end_date.year - start_date.year)
+                total_experience += duration_years
+
+        experiences_list = [{'company': exp['company'], 'role': exp['role'], 'startDate': exp['startDate'], 'endDate': exp['endDate']} for exp in experiences]
+
         result.append({
             "user_id": user['userId'],
             "name": user['name'],
             "email": user['email'],
-            "skills": user_skills_list
+            "skills": user_skills_list,
+            "full_time_salary": user['fullTimeSalary'],
+            "companies": list(companies),
+            "total_experience_years": total_experience
         })
 
-    end_time = time.time()  # End timing
-    execution_time = end_time - start_time  # Calculate execution time
+    execution_time = time.time() - start_time  # Calculate execution time
 
     return {"users": result, "execution_time": execution_time}
-
-
-
-
-
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
