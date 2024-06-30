@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import databases
 import sqlalchemy
@@ -10,7 +11,6 @@ from dotenv import load_dotenv
 import json
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, DateTime, Boolean, Text, JSON
 import time
-
 load_dotenv()
 
 class JobQuery(BaseModel):
@@ -116,6 +116,19 @@ WorkExperience = sqlalchemy.Table(
 )
 
 app = FastAPI()
+# Configure CORS
+origins = [
+    "http://localhost:3000",  # Adjust this to the URL of your frontend
+    "http://127.0.0.1:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 async def startup():
