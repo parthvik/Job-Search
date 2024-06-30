@@ -16,6 +16,7 @@ export function Ui() {
   const [data, setData] = useState(null);
   const [users, setUsers] = useState([]);
   const [executionTime, setExecutionTime] = useState(0);
+  const [noResultsMessage, setNoResultsMessage] = useState("");
 
   const handleSearch = async (searchResponse: string) => {
     const info = {
@@ -26,18 +27,36 @@ export function Ui() {
       semanticSearchString: searchResponse
     };
 
-    const response = await fetch("http://localhost:8000/query-jobs", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(info),
-    });
+    try {
+      const response = await fetch("https://do0rmamu-mercor-application.hf.space/query-jobs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(info),
+      });
 
-    const result = await response.json();
-    setData(result); // Store the entire result for potential additional use
-    setUsers(result.users); // Store only the users array
-    setExecutionTime(result.execution_time); // Store the execution time
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.message === "No skills matched your query." && result.query === "") {
+        setNoResultsMessage("No results found");
+        setUsers([]);
+        setExecutionTime(0);
+      } else {
+        setData(result); // Store the entire result for potential additional use
+        setUsers(result.users); // Store only the users array
+        setExecutionTime(result.execution_time); // Store the execution time
+        setNoResultsMessage(""); // Clear the no results message
+      }
+    } catch (error) {
+      console.error("Error during search:", error);
+      setNoResultsMessage("An error occurred during the search. Please try again later.");
+      setUsers([]);
+      setExecutionTime(0);
+    }
   };
 
   const toggleCommitment = (type: "fullTime" | "partTime") => {
@@ -139,8 +158,8 @@ export function Ui() {
           </div>
         </div>
         <div className="mt-6 flex flex-wrap gap-4">
-          <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("Worked on web scraping")}>
-            Worked on web scraping
+          <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("Worked on web-scraping")}>
+            Worked on web-scraping
           </Badge>
           <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("Lives in South America")}>
             Lives in South America
@@ -166,6 +185,11 @@ export function Ui() {
             Part-time
           </button>
         </div>
+        {noResultsMessage && (
+          <div className="mt-6 text-red-600 font-semibold">
+            {noResultsMessage}
+          </div>
+        )}
         <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-2">
           {users.map((user) => (
             <Card key={user.user_id} className="border border-gray-300 rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-300 bg-white hover:border-purple-300">
@@ -244,6 +268,8 @@ function SearchIcon(props: any) {
     </svg>
   )
 }
+
+
 
 
 
