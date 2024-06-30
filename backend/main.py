@@ -11,10 +11,12 @@ from dotenv import load_dotenv
 import json
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, DateTime, Boolean, Text, JSON
 import time
+from datetime import datetime
+
 load_dotenv()
 
 class JobQuery(BaseModel):
-    budget: str  # Assuming this is still a string that needs to be converted to an integer for comparison
+    budget: str
     experience: str
     startDate: str
     workType: str
@@ -138,8 +140,6 @@ async def startup():
 async def shutdown():
     await database.disconnect()
 
-from datetime import datetime
-
 @app.post("/query-jobs/")
 async def query_jobs(query: JobQuery):
     start_time = time.time()  # Start timing
@@ -160,7 +160,12 @@ async def query_jobs(query: JobQuery):
     if not user_ids:
         return {"message": "No users found with the matching skills."}
 
-    user_query = select(jobs).where(jobs.c.userId.in_(user_ids), jobs.c.fullTimeSalary <= int(query.budget))
+    user_query = (
+        select(jobs)
+        .where(jobs.c.userId.in_(user_ids), jobs.c.fullTimeSalary <= int(query.budget))
+        .order_by(jobs.c.fullTimeSalary.desc())  # Sorting by fullTimeSalary descending
+        .limit(4)  # Limiting to 4 results
+    )
     users_with_skills = await database.fetch_all(user_query)
 
     result = []
@@ -203,6 +208,7 @@ async def query_jobs(query: JobQuery):
     execution_time = time.time() - start_time  # Calculate execution time
 
     return {"users": result, "execution_time": execution_time}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
