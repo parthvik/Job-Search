@@ -20,11 +20,10 @@ export function Ui() {
       experience,
       startDate,
       workType: "both",
-      SearchResponse: searchResponse,
-      commitment,
+      semanticSearchString: searchResponse
     };
 
-    const response = await fetch("http://localhost:8000/query_jobs", {
+    const response = await fetch("http://localhost:8000/query-jobs", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
