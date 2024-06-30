@@ -9,6 +9,7 @@ import os
 from dotenv import load_dotenv
 import json
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, DateTime, Boolean, Text, JSON
+import time
 
 load_dotenv()
 
@@ -73,6 +74,15 @@ jobs = sqlalchemy.Table(
     sqlalchemy.Column("preVettedAt", DateTime)
 )
 
+MercorUserSkills = sqlalchemy.Table(
+    "MercorUserSkills",
+    metadata,
+    sqlalchemy.Column("userId", sqlalchemy.String, sqlalchemy.ForeignKey("MercorUsers.userId"), primary_key=True),
+    sqlalchemy.Column("skillId", sqlalchemy.String, sqlalchemy.ForeignKey("Skills.skillId"), primary_key=True),
+    sqlalchemy.Column("isPrimary", sqlalchemy.Boolean, default=False),
+    sqlalchemy.Column("order", Integer, default=0)
+)
+
 
 app = FastAPI()
 
@@ -86,15 +96,52 @@ async def shutdown():
 
 @app.post("/query-jobs/")
 async def query_jobs(query: JobQuery):
-    all_skills = await database.fetch_all(select(skills.c.skillName))
-    skills_list = [skill['skillName'] for skill in all_skills]
+    start_time = time.time()  # Start timing
     
-    matching_skills = process.extract(query.semanticSearchString, skills_list, limit=10)
-    matching_skill_names = [match[0] for match in matching_skills if match[1] > 70]  # assuming a threshold score of 70
+    # Fetch skills and process query
+    all_skills = await database.fetch_all(select(skills.c.skillId, skills.c.skillName))
+    skills_dict = {skill['skillName']: skill['skillId'] for skill in all_skills}
+    
+    # Match skills using fuzzy logic
+    matching_skills = process.extract(query.semanticSearchString, skills_dict.keys(), limit=10)
+    matching_skill_ids = [skills_dict[skill[0]] for skill in matching_skills if skill[1] > 70]
 
-    query_statement = select(jobs).where(jobs.c.preferredRole.in_(matching_skill_names))
-    results = await database.fetch_all(query_statement)
-    return results
+    if not matching_skill_ids:
+        return {"message": "No skills matched your query.", "query": query.semanticSearchString}
+
+    # Get user IDs from matched skills
+    user_skill_query = select(MercorUserSkills.c.userId).where(MercorUserSkills.c.skillId.in_(matching_skill_ids)).distinct()
+    user_ids = await database.fetch_all(user_skill_query)
+    user_ids = [user['userId'] for user in user_ids]
+
+    if not user_ids:
+        return {"message": "No users found with the matching skills."}
+
+    # Retrieve user details for the top matching users
+    user_query = select(jobs).where(jobs.c.userId.in_(user_ids)).limit(4)  # Limiting results
+    users_with_skills = await database.fetch_all(user_query)
+
+    result = []
+    for user in users_with_skills:
+        user_skills_query = select(skills.c.skillName).join(MercorUserSkills, skills.c.skillId == MercorUserSkills.c.skillId).where(MercorUserSkills.c.userId == user['userId'])
+        user_skills = await database.fetch_all(user_skills_query)
+        user_skills_list = [skill['skillName'] for skill in user_skills]
+
+        result.append({
+            "user_id": user['userId'],
+            "name": user['name'],
+            "email": user['email'],
+            "skills": user_skills_list
+        })
+
+    end_time = time.time()  # End timing
+    execution_time = end_time - start_time  # Calculate execution time
+
+    return {"users": result, "execution_time": execution_time}
+
+
+
+
 
 
 if __name__ == "__main__":
