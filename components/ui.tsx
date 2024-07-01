@@ -4,6 +4,16 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button";
 
+interface User {
+  user_id: string;
+  name: string;
+  email: string;
+  skills: string[];
+  full_time_salary: number;
+  companies: string[];
+  total_experience_years: number;
+}
+
 export function Ui() {
   const [experience, setExperience] = useState("0");
   const [budget, setBudget] = useState("0");
@@ -14,7 +24,7 @@ export function Ui() {
     partTime: true,
   });
   const [data, setData] = useState(null);
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [executionTime, setExecutionTime] = useState(0);
   const [noResultsMessage, setNoResultsMessage] = useState("");
 
@@ -28,7 +38,7 @@ export function Ui() {
     };
 
     try {
-      const response = await fetch("https://do0rmamu-mercor-application.hf.space/query-jobs", {
+      const response = await fetch("https://do0rmamu-mercor-application.hf.space/query-jobs/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -161,14 +171,14 @@ export function Ui() {
           <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("Worked on web-scraping")}>
             Worked on web-scraping
           </Badge>
-          <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("Lives in South America")}>
-            Lives in South America
+          <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("Python Expert")}>
+            Python Expert
           </Badge>
-          <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("Worked at Amazon")}>
-            Worked at Amazon
+          <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("C++")}>
+            C++
           </Badge>
-          <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("Fine-tuned on LLMs")}>
-            Fine-tuned on LLMs
+          <Badge variant="default" className="bg-gray-200 text-gray-800" onClick={() => handleSearch("AWS")}>
+            AWS
           </Badge>
         </div>
         <div className="mt-6 flex space-x-4">
@@ -195,13 +205,13 @@ export function Ui() {
             <Card key={user.user_id} className="border border-gray-300 rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-300 bg-white hover:border-purple-300">
               <CardHeader className="flex items-center space-x-4">
                 <Avatar className="w-16 h-16">
-                  <AvatarImage src={`https://randomuser.me/api/portraits/men/${user.user_id}.jpg`} className="rounded-full" />
+                  <AvatarImage src={`https://randomuser.me/api/portraits/men/${Math.floor(Math.random() * 100)}.jpg`} className="rounded-full" />
                   <AvatarFallback>{user.name.split(" ")[0][0] + user.name.split(" ")[1][0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <CardTitle className="text-gray-800">{`${user.name} | Exp: ${user.total_experience_years} years`}</CardTitle>
+                  <CardDescription className="text-gray-600">{user.email}</CardDescription>
                 </div>
-          
               </CardHeader>
               <CardContent>
                 <div className="mt-2">
@@ -210,6 +220,16 @@ export function Ui() {
                     {user.skills.map(skill => (
                       <Badge key={skill} variant="default" className="bg-gray-200 text-gray-800">
                         {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="font-semibold text-gray-800">Companies</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {user.companies.map(company => (
+                      <Badge key={company} variant="default" className="bg-gray-200 text-gray-800">
+                        {company}
                       </Badge>
                     ))}
                   </div>
@@ -268,9 +288,3 @@ function SearchIcon(props: any) {
     </svg>
   )
 }
-
-
-
-
-
-
