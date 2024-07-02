@@ -119,6 +119,12 @@ export function Ui() {
               value={searchString}
               onChange={(e) => setSearchString(e.target.value)}
             />
+            <button
+              className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 flex items-center justify-center"
+              onClick={() => handleSearch(searchString)}
+            >
+              <SearchIcon className="w-6 h-6" />
+            </button>
           </div>
           <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 w-full md:w-auto">
             <div className="flex flex-col items-center w-full md:w-auto">
@@ -160,12 +166,6 @@ export function Ui() {
               </div>
               <span id="availabilityValue" className="font-semibold text-gray-600 mt-2">Starts on {startDate}</span>
             </div>
-            <button
-              className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 flex items-center justify-center"
-              onClick={() => handleSearch(searchString)}
-            >
-              <SearchIcon className="w-6 h-6" />
-            </button>
           </div>
         </div>
         <div className="mt-6 flex flex-wrap gap-4">
