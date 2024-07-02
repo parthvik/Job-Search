@@ -51,10 +51,11 @@ export function Ui() {
       }
 
       const result = await response.json();
-      if (result.message === "No skills matched your query." && result.query === "") {
-        setNoResultsMessage("No results found");
+      if (result.message === "No skills matched your query.") {
+        setNoResultsMessage(`No skills matched your query for '${searchResponse}'.`);
         setUsers([]);
         setExecutionTime(0);
+        return; // Stop further execution
       } else {
         setData(result); // Store the entire result for potential additional use
         setUsers(result.users); // Store only the users array
@@ -110,7 +111,7 @@ export function Ui() {
     <div className="p-6 bg-gradient-to-r from-purple-200 via-purple-300 to-purple-400 min-h-screen">
       <div className="max-w-7xl mx-auto bg-[#F3F4F6] rounded-lg shadow-lg p-6">
         <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 w-full md:w-auto">
             <input
               type="text"
               placeholder="Search people"
@@ -119,8 +120,8 @@ export function Ui() {
               onChange={(e) => setSearchString(e.target.value)}
             />
           </div>
-          <div className="flex space-x-4">
-            <div className="flex flex-col items-center">
+          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 w-full md:w-auto">
+            <div className="flex flex-col items-center w-full md:w-auto">
               <span className="text-sm text-red-600">Experience</span>
               <input
                 type="range"
@@ -133,7 +134,7 @@ export function Ui() {
               />
               <span id="experienceValue" className="font-semibold text-red-600">{experience}+ years</span>
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center w-full md:w-auto">
               <span className="text-sm text-red-600">Budget</span>
               <input
                 type="range"
@@ -146,9 +147,9 @@ export function Ui() {
               />
               <span id="budgetValue" className="font-semibold text-red-600">${budget}{budget === '10000' ? '+' : ''}</span>
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center w-full md:w-auto">
               <span className="text-sm text-red-600 mb-2">Availability</span>
-              <div className="relative">
+              <div className="relative w-full md:w-auto">
                 <input
                   type="date"
                   className="border border-red-600 rounded-md p-2 w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-red-600 gardio text-gray-600"
@@ -160,7 +161,7 @@ export function Ui() {
               <span id="availabilityValue" className="font-semibold text-gray-600 mt-2">Starts on {startDate}</span>
             </div>
             <button
-              className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700"
+              className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 flex items-center justify-center"
               onClick={() => handleSearch(searchString)}
             >
               <SearchIcon className="w-6 h-6" />
@@ -181,7 +182,7 @@ export function Ui() {
             AWS
           </Badge>
         </div>
-        <div className="mt-6 flex space-x-4">
+        <div className="mt-6 flex flex-wrap gap-4">
           <button
             className={`p-2 rounded-full ${commitment.fullTime ? 'bg-lightblue-300 text-white' : 'bg-gray-200 text-gray-800'}`}
             onClick={() => toggleCommitment("fullTime")}
